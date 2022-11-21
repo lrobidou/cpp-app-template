@@ -9,11 +9,14 @@ function project_build ()
 
   cmake .. -DCMAKE_BUILD_TYPE=${1} \
            -DWITH_TESTS=${2} \
+           -DWITH_COVERAGE=${2} \
            -DSTATIC_BUILD=${3} \
            -DDEV_BUILD="${4}"
   make -j${5}
-
-  if [[ ${6} == 1 && $? == 0 ]]; then
+  make_passed=$(($? == 0))  # is the return code of make 0 ?
+  if [[ ${1} == "Coverage" && ${make_passed} == 1 ]]; then
+    make coverage-report
+  elif [[ ${6} == 1 && ${make_passed} == 1 ]]; then
     ctest --verbose
   fi
 }
@@ -24,7 +27,7 @@ function usage ()
   echo "Usage: "
   echo "  ./install.sh [-r str] [-t int] [-j int] [-d] [-s]"
   echo "Options: "
-  echo "  -r <Release|Debug> -> build type {Release}."
+  echo "  -r <Release|Debug|Coverage> -> build type {Release}."
   echo "  -t <0|1|2>         -> tests: 0 = disabled, 1 = compile, 2 = compile and run {2}."
   echo "  -j <INT>           -> nb threads {8}."
   echo "  -d                 -> dev build {disabled}."
@@ -35,6 +38,7 @@ function usage ()
 
 rel="Release"
 deb="Debug"
+cov="Coverage"
 
 mode="Release"
 dev="OFF"
@@ -49,7 +53,7 @@ while getopts "r:k:t:c:j:onwmsh" option; do
   case "$option" in
     r)
       mode=${OPTARG}
-      [[ ${mode} != ${rel} && ${mode} != ${deb} ]] && usage
+      [[ ${mode} != ${rel} && ${mode} != ${deb} && ${mode} != ${cov} ]] && usage
       ;;
     t)
       tests=${OPTARG}
